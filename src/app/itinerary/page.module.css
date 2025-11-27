@@ -1,0 +1,254 @@
+.main {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.panel {
+    width: 50%;
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.header {
+    padding: 2rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.header h1 {
+    font-size: 1.75rem;
+    margin-top: 1rem;
+    margin-bottom: 0;
+}
+
+.backBtn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.95rem;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.backBtn:hover {
+    color: var(--primary);
+}
+
+.overview {
+    padding: 2rem;
+    background: linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%);
+    border-bottom: 1px solid var(--border);
+}
+
+.overview p {
+    margin-bottom: 1.25rem;
+    line-height: 1.6;
+    color: #334155;
+    font-size: 1rem;
+}
+
+.stats {
+    display: flex;
+    gap: 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.timeline {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+}
+
+.itemWrapper {
+    margin-bottom: 2rem;
+}
+
+.item {
+    display: flex;
+    gap: 1.25rem;
+    position: relative;
+}
+
+.number {
+    width: 40px;
+    height: 40px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+    z-index: 1;
+    flex-shrink: 0;
+}
+
+.content {
+    flex: 1;
+    padding-bottom: 1rem;
+}
+
+.placeHeader {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.placeHeader h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.aiBadge {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.description {
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.meta {
+    font-size: 0.9rem;
+}
+
+.timing {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.timeAllocation,
+.recommendedTime {
+    background: #f1f5f9;
+    padding: 0.5rem 0.85rem;
+    border-radius: 8px;
+    color: #475569;
+    font-weight: 500;
+}
+
+.insightBox {
+    background: #f0f7ff;
+    padding: 1rem;
+    border-radius: 10px;
+    border-left: 4px solid var(--primary);
+    line-height: 1.6;
+    color: #334155;
+    font-size: 0.95rem;
+}
+
+.insightBox strong {
+    color: #0f172a;
+}
+
+.commute {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin: 1.5rem 0 2rem 0;
+    padding-left: 20px;
+}
+
+.commuteLine {
+    width: 2px;
+    height: 50px;
+    background: linear-gradient(to bottom, var(--border) 0%, transparent 100%);
+    margin-left: 19px;
+}
+
+.commuteCard {
+    flex: 1;
+    display: flex;
+    gap: 1rem;
+    background: #fefce8;
+    border: 1px solid #fde047;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-left: 1.25rem;
+}
+
+.commuteIcon {
+    font-size: 1.75rem;
+    display: flex;
+    align-items: center;
+}
+
+.commuteDetails {
+    flex: 1;
+}
+
+.commuteMethod {
+    font-weight: 600;
+    color: #854d0e;
+    margin-bottom: 0.35rem;
+    font-size: 0.95rem;
+}
+
+.commuteInfo {
+    color: #a16207;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.commuteCost {
+    color: #854d0e;
+    font-size: 0.85rem;
+    margin-top: 0.35rem;
+    font-weight: 600;
+}
+
+.footer {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.exportBtn {
+    width: 100%;
+    padding: 1rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.exportBtn:hover {
+    background: #7c3aed;
+}
+
+.mapContainer {
+    flex: 1;
+    height: 100vh;
+}
+
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+}
