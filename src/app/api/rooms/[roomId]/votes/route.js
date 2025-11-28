@@ -1,4 +1,4 @@
-import { rooms } from '@/lib/roomStorage';
+import db from '@/lib/db';
 import { generateItinerary } from '@/services/geminiService';
 
 /**
@@ -16,7 +16,7 @@ export async function POST(request, { params }) {
             }, { status: 400 });
         }
 
-        const room = rooms.get(roomId);
+        const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
 
         if (!room) {
             return Response.json({
@@ -25,45 +25,66 @@ export async function POST(request, { params }) {
         }
 
         // Verify user is in room
-        const user = room.users.find(u => u.userId === userId);
+        const user = db.prepare('SELECT * FROM users WHERE id = ? AND room_id = ?').get(userId, roomId);
         if (!user) {
             return Response.json({
                 error: 'User not found in room'
             }, { status: 403 });
         }
 
-        // Store votes
-        room.votes.set(userId, votes);
+        // Transaction to save votes and update status
+        const insertVote = db.prepare('INSERT INTO votes (room_id, user_id, place_id, place_data, vote_count) VALUES (?, ?, ?, ?, ?)');
+        const updateUser = db.prepare('UPDATE users SET is_ready = 1 WHERE id = ?');
 
-        // Mark user as ready
-        user.isReady = true;
+        db.transaction(() => {
+            // Delete existing votes for this user (if any)
+            db.prepare('DELETE FROM votes WHERE user_id = ?').run(userId);
+
+            // Insert new votes
+            votes.forEach(vote => {
+                insertVote.run(roomId, userId, vote.placeId, JSON.stringify(vote), vote.votes);
+            });
+
+            // Mark user as ready
+            updateUser.run(userId);
+        })();
 
         // Check if all 5 users are ready
-        const allReady = room.users.length === 5 && room.users.every(u => u.isReady);
+        const users = db.prepare('SELECT * FROM users WHERE room_id = ?').all(roomId);
+        const allReady = users.length === 5 && users.every(u => u.is_ready === 1);
+
+        let itinerary = null;
+        if (room.itinerary) {
+            itinerary = JSON.parse(room.itinerary);
+        }
 
         if (allReady && !room.itinerary) {
             // Aggregate votes from all users
-            const aggregatedVotes = aggregateVotes(room.votes);
+            const allVotes = db.prepare('SELECT * FROM votes WHERE room_id = ?').all(roomId);
+            const aggregatedVotes = aggregateVotes(allVotes);
 
             // Generate itinerary with Gemini
             try {
-                const itinerary = await generateItinerary(aggregatedVotes);
-                room.itinerary = itinerary;
-                room.status = 'completed';
+                itinerary = await generateItinerary(aggregatedVotes);
+
+                // Save itinerary and update status
+                db.prepare('UPDATE rooms SET itinerary = ?, status = ? WHERE id = ?')
+                    .run(JSON.stringify(itinerary), 'completed', roomId);
+
             } catch (error) {
                 console.error('Error generating group itinerary:', error);
-                room.status = 'error';
+                db.prepare('UPDATE rooms SET status = ? WHERE id = ?').run('error', roomId);
             }
         }
 
         return Response.json({
             success: true,
             userId,
-            isReady: user.isReady,
-            votesSubmitted: room.votes.size,
-            totalUsers: room.users.length,
+            isReady: true,
+            votesSubmitted: votes.length,
+            totalUsers: users.length,
             allReady,
-            itinerary: room.itinerary
+            itinerary
         });
     } catch (error) {
         console.error('Error submitting votes:', error);
@@ -79,7 +100,7 @@ export async function POST(request, { params }) {
 export async function GET(request, { params }) {
     const { roomId } = await params;
 
-    const room = rooms.get(roomId);
+    const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
 
     if (!room) {
         return Response.json({
@@ -87,44 +108,56 @@ export async function GET(request, { params }) {
         }, { status: 404 });
     }
 
-    // Convert votes Map to array
-    const votesArray = [];
-    for (const [userId, userVotes] of room.votes.entries()) {
-        const user = room.users.find(u => u.userId === userId);
-        votesArray.push({
-            userId,
-            userName: user?.userName,
-            votes: userVotes
+    // Get all votes
+    const votes = db.prepare(`
+        SELECT v.*, u.name as userName 
+        FROM votes v 
+        JOIN users u ON v.user_id = u.id 
+        WHERE v.room_id = ?
+    `).all(roomId);
+
+    // Group by user
+    const votesByUser = {};
+    votes.forEach(v => {
+        if (!votesByUser[v.user_id]) {
+            votesByUser[v.user_id] = {
+                userId: v.user_id,
+                userName: v.userName,
+                votes: []
+            };
+        }
+        votesByUser[v.user_id].votes.push({
+            ...JSON.parse(v.place_data),
+            votes: v.vote_count
         });
-    }
+    });
 
     return Response.json({
         success: true,
-        votes: votesArray,
-        totalVotes: votesArray.length
+        votes: Object.values(votesByUser),
+        totalVotes: votes.length
     });
 }
 
 /**
  * Aggregate votes from all users
  */
-function aggregateVotes(votesMap) {
+function aggregateVotes(allVotes) {
     const combined = new Map();
 
-    for (const [userId, userVotes] of votesMap.entries()) {
-        userVotes.forEach(vote => {
-            const existing = combined.get(vote.placeId) || {
-                ...vote,
-                votes: 0,
-                voters: []
-            };
+    allVotes.forEach(row => {
+        const voteData = JSON.parse(row.place_data);
+        const existing = combined.get(row.place_id) || {
+            ...voteData,
+            votes: 0,
+            voters: []
+        };
 
-            existing.votes += vote.votes;
-            existing.voters.push(userId);
+        existing.votes += row.vote_count;
+        existing.voters.push(row.user_id);
 
-            combined.set(vote.placeId, existing);
-        });
-    }
+        combined.set(row.place_id, existing);
+    });
 
     // Convert to array and sort by votes
     return Array.from(combined.values())

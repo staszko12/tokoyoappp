@@ -1,4 +1,4 @@
-import { rooms } from '@/lib/roomStorage';
+import db from '@/lib/db';
 
 /**
  * Generate a unique room ID
@@ -8,33 +8,31 @@ function generateRoomId() {
 }
 
 /**
- * POST /api/rooms - Create new room
+ * POST /api/rooms - Create a new room
  */
 export async function POST() {
     const roomId = generateRoomId();
+    const createdAt = Date.now();
 
-    const room = {
-        roomId,
-        users: [],
-        votes: new Map(),
-        itinerary: null,
-        createdAt: Date.now(),
-        status: 'waiting' // waiting | ready | completed
-    };
+    try {
+        const stmt = db.prepare('INSERT INTO rooms (id, created_at, status) VALUES (?, ?, ?)');
+        stmt.run(roomId, createdAt, 'waiting');
 
-    rooms.set(roomId, room);
+        const shareLink = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/room/${roomId}`;
 
-    const shareLink = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/room/${roomId}`;
-
-    return Response.json({
-        success: true,
-        roomId,
-        shareLink
-    });
+        return Response.json({
+            success: true,
+            roomId,
+            shareLink
+        });
+    } catch (error) {
+        console.error('Database error:', error);
+        return Response.json({ error: 'Failed to create room' }, { status: 500 });
+    }
 }
 
 /**
- * GET /api/rooms?roomId=xxx - Get room status
+ * GET /api/rooms?roomId=XYZ - Get room status
  */
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
@@ -43,22 +41,6 @@ export async function GET(request) {
     if (!roomId) {
         return Response.json({ error: 'Room ID required' }, { status: 400 });
     }
-
-    const room = rooms.get(roomId);
-
-    if (!room) {
-        return Response.json({ error: 'Room not found' }, { status: 404 });
-    }
-
-    // Convert votes Map to array for JSON serialization
-    const votesArray = [];
-    for (const [userId, userVotes] of room.votes.entries()) {
-        votesArray.push({
-            userId,
-            votes: userVotes
-        });
-    }
-
     return Response.json({
         success: true,
         roomId: room.roomId,

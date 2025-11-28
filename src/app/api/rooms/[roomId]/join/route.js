@@ -1,4 +1,4 @@
-import { rooms } from '@/lib/roomStorage';
+import db from '@/lib/db';
 
 /**
  * POST /api/rooms/:roomId/join - Join room with name
@@ -11,11 +11,11 @@ export async function POST(request, { params }) {
 
         if (!userName || userName.trim() === '') {
             return Response.json({
-                error: 'User name is required'
+                error: 'Name is required'
             }, { status: 400 });
         }
 
-        const room = rooms.get(roomId);
+        const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
 
         if (!room) {
             return Response.json({
@@ -23,44 +23,33 @@ export async function POST(request, { params }) {
             }, { status: 404 });
         }
 
-        // Check if room is full
-        if (room.users.length >= 5) {
+        const users = db.prepare('SELECT * FROM users WHERE room_id = ?').all(roomId);
+
+        if (users.length >= 5) {
             return Response.json({
-                error: 'Room is full (maximum 5 users)'
+                error: 'Room is full (max 5 users)'
             }, { status: 400 });
         }
 
-        // Check if name already taken
-        const nameTaken = room.users.some(u => u.userName.toLowerCase() === userName.toLowerCase());
-        if (nameTaken) {
+        const existingUser = users.find(u => u.name.toLowerCase() === userName.toLowerCase());
+        if (existingUser) {
             return Response.json({
-                error: 'This name is already taken in this room'
+                error: 'Name already taken in this group'
             }, { status: 400 });
         }
 
-        // Generate user ID
-        const userId = crypto.randomUUID();
+        const userId = Math.random().toString(36).substring(2, 10);
 
-        // Add user to room
-        const user = {
-            userId,
-            userName: userName.trim(),
-            isReady: false,
-            joinedAt: Date.now()
-        };
-
-        room.users.push(user);
+        const stmt = db.prepare('INSERT INTO users (id, room_id, name, joined_at) VALUES (?, ?, ?, ?)');
+        stmt.run(userId, roomId, userName, Date.now());
 
         return Response.json({
             success: true,
             userId,
-            roomId,
-            userName: user.userName,
-            users: room.users,
-            totalUsers: room.users.length
+            userName
         });
     } catch (error) {
-        console.error('Error joining room:', error);
+        console.error('Database error:', error);
         return Response.json({
             error: 'Failed to join room'
         }, { status: 500 });
