@@ -76,7 +76,7 @@ export default function RoomPage() {
         if (user) {
             loadPlaces();
         }
-    }, [activeFilter, activeCity, user, votes]);
+    }, [activeFilter, activeCity, user]); // Removed votes from dependency to avoid re-fetch
 
     const handleVote = (id) => {
         // Update votes object
@@ -84,6 +84,11 @@ export default function RoomPage() {
             ...prev,
             [id]: (prev[id] || 0) + 1
         }));
+
+        // Update local places state immediately for UI responsiveness
+        setPlaces(prevPlaces => prevPlaces.map(place =>
+            place.id === id ? { ...place, votes: (place.votes || 0) + 1 } : place
+        ));
     };
 
     const handleSubmitVotes = async () => {

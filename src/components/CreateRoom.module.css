@@ -149,3 +149,90 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+.historySection {
+    margin-top: 2.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.historyHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.historyHeader h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #64748b;
+    margin: 0;
+}
+
+.clearBtn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.clearBtn:hover {
+    background: #f1f5f9;
+    color: #ef4444;
+}
+
+.historyList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.historyItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.historyItem:hover {
+    background: white;
+    border-color: #667eea;
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.historyInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.historyCode {
+    font-weight: 600;
+    color: #1e293b;
+    letter-spacing: 0.05em;
+}
+
+.historyDate {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.arrow {
+    color: #cbd5e1;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.historyItem:hover .arrow {
+    color: #667eea;
+}

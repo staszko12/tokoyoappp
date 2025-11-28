@@ -9,6 +9,25 @@ export default function CreateRoom() {
     const [creating, setCreating] = useState(false);
     const [joinCode, setJoinCode] = useState('');
     const [joining, setJoining] = useState(false);
+    const [history, setHistory] = useState([]);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        // Load history on mount
+        const savedHistory = JSON.parse(localStorage.getItem('japan_trip_history') || '[]');
+        setHistory(savedHistory);
+    }, []);
+
+    const addToHistory = (roomId) => {
+        const newHistory = [
+            { roomId, joinedAt: Date.now() },
+            ...history.filter(h => h.roomId !== roomId)
+        ].slice(0, 5); // Keep last 5
+
+        localStorage.setItem('japan_trip_history', JSON.stringify(newHistory));
+        setHistory(newHistory);
+    };
 
     const handleCreateRoom = async () => {
         setCreating(true);
@@ -20,6 +39,7 @@ export default function CreateRoom() {
             const data = await response.json();
 
             if (data.success) {
+                addToHistory(data.roomId);
                 // Redirect to the new room
                 router.push(`/room/${data.roomId}`);
             }
@@ -37,7 +57,14 @@ export default function CreateRoom() {
             return;
         }
 
-        router.push(`/room/${joinCode.toUpperCase()}`);
+        const code = joinCode.toUpperCase();
+        addToHistory(code);
+        router.push(`/room/${code}`);
+    };
+
+    const clearHistory = () => {
+        localStorage.removeItem('japan_trip_history');
+        setHistory([]);
     };
 
     return (
@@ -88,6 +115,32 @@ export default function CreateRoom() {
                         </button>
                     </div>
                 </div>
+
+                {mounted && history.length > 0 && (
+                    <div className={styles.historySection}>
+                        <div className={styles.historyHeader}>
+                            <h2>Previous Trips</h2>
+                            <button className={styles.clearBtn} onClick={clearHistory}>Clear</button>
+                        </div>
+                        <div className={styles.historyList}>
+                            {history.map(item => (
+                                <div
+                                    key={item.roomId}
+                                    className={styles.historyItem}
+                                    onClick={() => router.push(`/results/${item.roomId}`)}
+                                >
+                                    <div className={styles.historyInfo}>
+                                        <span className={styles.historyCode}>{item.roomId}</span>
+                                        <span className={styles.historyDate}>
+                                            {new Date(item.joinedAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <span className={styles.arrow}>→</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
