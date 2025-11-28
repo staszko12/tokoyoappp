@@ -10,9 +10,11 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@prisma/client": "^5.22.0",
     "@vis.gl/react-google-maps": "^1.7.1",
     "better-sqlite3": "^12.4.6",
     "next": "16.0.5",
+    "prisma": "^5.22.0",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },

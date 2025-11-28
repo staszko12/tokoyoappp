@@ -1,4 +1,4 @@
-import db from '@/lib/db';
+import prisma from '@/lib/prisma';
 
 /**
  * Generate a unique room ID
@@ -12,11 +12,14 @@ function generateRoomId() {
  */
 export async function POST() {
     const roomId = generateRoomId();
-    const createdAt = Date.now();
 
     try {
-        const stmt = db.prepare('INSERT INTO rooms (id, created_at, status) VALUES (?, ?, ?)');
-        stmt.run(roomId, createdAt, 'waiting');
+        await prisma.room.create({
+            data: {
+                id: roomId,
+                status: 'waiting'
+            }
+        });
 
         const shareLink = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/room/${roomId}`;
 
@@ -41,14 +44,36 @@ export async function GET(request) {
     if (!roomId) {
         return Response.json({ error: 'Room ID required' }, { status: 400 });
     }
-    return Response.json({
-        success: true,
-        roomId: room.roomId,
-        users: room.users,
-        votesSubmitted: votesArray.length,
-        totalUsers: room.users.length,
-        isReady: room.users.length === 5 && votesArray.length === 5,
-        status: room.status,
-        itinerary: room.itinerary
-    });
+
+    try {
+        const room = await prisma.room.findUnique({
+            where: { id: roomId },
+            include: {
+                users: true
+            }
+        });
+
+        if (!room) {
+            return Response.json({ error: 'Room not found' }, { status: 404 });
+        }
+
+        // Calculate votesSubmitted and totalUsers based on the fetched room data
+        const votesSubmitted = room.users.filter(user => user.vote !== null).length;
+        const totalUsers = room.users.length;
+        const isReady = totalUsers > 0 && votesSubmitted === totalUsers; // Assuming 'ready' means all users have voted
+
+        return Response.json({
+            success: true,
+            roomId: room.id,
+            users: room.users,
+            votesSubmitted: votesSubmitted,
+            totalUsers: totalUsers,
+            isReady: isReady,
+            status: room.status,
+            itinerary: room.itinerary ? JSON.parse(room.itinerary) : null
+        });
+    } catch (error) {
+        console.error('Database error:', error);
+        return Response.json({ error: 'Failed to fetch room' }, { status: 500 });
+    }
 }

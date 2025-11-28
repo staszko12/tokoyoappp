@@ -1,4 +1,4 @@
-import db from '@/lib/db';
+import prisma from '@/lib/prisma';
 import { generateItinerary } from '@/services/geminiService';
 
 /**
@@ -16,7 +16,9 @@ export async function POST(request, { params }) {
             }, { status: 400 });
         }
 
-        const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
+        const room = await prisma.room.findUnique({
+            where: { id: roomId }
+        });
 
         if (!room) {
             return Response.json({
@@ -25,7 +27,10 @@ export async function POST(request, { params }) {
         }
 
         // Verify user is in room
-        const user = db.prepare('SELECT * FROM users WHERE id = ? AND room_id = ?').get(userId, roomId);
+        const user = await prisma.user.findFirst({
+            where: { id: userId, roomId }
+        });
+
         if (!user) {
             return Response.json({
                 error: 'User not found in room'
@@ -33,25 +38,37 @@ export async function POST(request, { params }) {
         }
 
         // Transaction to save votes and update status
-        const insertVote = db.prepare('INSERT INTO votes (room_id, user_id, place_id, place_data, vote_count) VALUES (?, ?, ?, ?, ?)');
-        const updateUser = db.prepare('UPDATE users SET is_ready = 1 WHERE id = ?');
-
-        db.transaction(() => {
-            // Delete existing votes for this user (if any)
-            db.prepare('DELETE FROM votes WHERE user_id = ?').run(userId);
-
-            // Insert new votes
-            votes.forEach(vote => {
-                insertVote.run(roomId, userId, vote.placeId, JSON.stringify(vote), vote.votes);
+        await prisma.$transaction(async (tx) => {
+            // Delete existing votes for this user
+            await tx.vote.deleteMany({
+                where: { userId }
             });
 
+            // Insert new votes
+            if (votes.length > 0) {
+                await tx.vote.createMany({
+                    data: votes.map(vote => ({
+                        roomId,
+                        userId,
+                        placeId: vote.placeId,
+                        placeData: JSON.stringify(vote),
+                        voteCount: vote.votes
+                    }))
+                });
+            }
+
             // Mark user as ready
-            updateUser.run(userId);
-        })();
+            await tx.user.update({
+                where: { id: userId },
+                data: { isReady: true }
+            });
+        });
 
         // Check if all 5 users are ready
-        const users = db.prepare('SELECT * FROM users WHERE room_id = ?').all(roomId);
-        const allReady = users.length === 5 && users.every(u => u.is_ready === 1);
+        const users = await prisma.user.findMany({
+            where: { roomId }
+        });
+        const allReady = users.length === 5 && users.every(u => u.isReady);
 
         let itinerary = null;
         if (room.itinerary) {
@@ -60,7 +77,9 @@ export async function POST(request, { params }) {
 
         if (allReady && !room.itinerary) {
             // Aggregate votes from all users
-            const allVotes = db.prepare('SELECT * FROM votes WHERE room_id = ?').all(roomId);
+            const allVotes = await prisma.vote.findMany({
+                where: { roomId }
+            });
             const aggregatedVotes = aggregateVotes(allVotes);
 
             // Generate itinerary with Gemini
@@ -68,12 +87,20 @@ export async function POST(request, { params }) {
                 itinerary = await generateItinerary(aggregatedVotes);
 
                 // Save itinerary and update status
-                db.prepare('UPDATE rooms SET itinerary = ?, status = ? WHERE id = ?')
-                    .run(JSON.stringify(itinerary), 'completed', roomId);
+                await prisma.room.update({
+                    where: { id: roomId },
+                    data: {
+                        itinerary: JSON.stringify(itinerary),
+                        status: 'completed'
+                    }
+                });
 
             } catch (error) {
                 console.error('Error generating group itinerary:', error);
-                db.prepare('UPDATE rooms SET status = ? WHERE id = ?').run('error', roomId);
+                await prisma.room.update({
+                    where: { id: roomId },
+                    data: { status: 'error' }
+                });
             }
         }
 
@@ -100,7 +127,9 @@ export async function POST(request, { params }) {
 export async function GET(request, { params }) {
     const { roomId } = await params;
 
-    const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId);
+    const room = await prisma.room.findUnique({
+        where: { id: roomId }
+    });
 
     if (!room) {
         return Response.json({
@@ -108,27 +137,25 @@ export async function GET(request, { params }) {
         }, { status: 404 });
     }
 
-    // Get all votes
-    const votes = db.prepare(`
-        SELECT v.*, u.name as userName 
-        FROM votes v 
-        JOIN users u ON v.user_id = u.id 
-        WHERE v.room_id = ?
-    `).all(roomId);
+    // Get all votes with user details
+    const votes = await prisma.vote.findMany({
+        where: { roomId },
+        include: { user: true }
+    });
 
     // Group by user
     const votesByUser = {};
     votes.forEach(v => {
-        if (!votesByUser[v.user_id]) {
-            votesByUser[v.user_id] = {
-                userId: v.user_id,
-                userName: v.userName,
+        if (!votesByUser[v.userId]) {
+            votesByUser[v.userId] = {
+                userId: v.userId,
+                userName: v.user.name,
                 votes: []
             };
         }
-        votesByUser[v.user_id].votes.push({
-            ...JSON.parse(v.place_data),
-            votes: v.vote_count
+        votesByUser[v.userId].votes.push({
+            ...JSON.parse(v.placeData),
+            votes: v.voteCount
         });
     });
 
@@ -146,17 +173,17 @@ function aggregateVotes(allVotes) {
     const combined = new Map();
 
     allVotes.forEach(row => {
-        const voteData = JSON.parse(row.place_data);
-        const existing = combined.get(row.place_id) || {
+        const voteData = JSON.parse(row.placeData);
+        const existing = combined.get(row.placeId) || {
             ...voteData,
             votes: 0,
             voters: []
         };
 
-        existing.votes += row.vote_count;
-        existing.voters.push(row.user_id);
+        existing.votes += row.voteCount;
+        existing.voters.push(row.userId);
 
-        combined.set(row.place_id, existing);
+        combined.set(row.placeId, existing);
     });
 
     // Convert to array and sort by votes
