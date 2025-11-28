@@ -141,7 +141,8 @@
     border-radius: 8px;
     border-left: 3px solid var(--primary);
     line-height: 1.5;
-    color: #334155;
+    color: #1e3a8a;
+    /* Dark blue for readability */
 }
 
 .insightBox strong {

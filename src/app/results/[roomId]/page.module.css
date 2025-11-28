@@ -226,6 +226,8 @@
     border-radius: 8px;
     font-size: 0.9rem;
     line-height: 1.6;
+    color: #1e3a8a;
+    /* Dark blue for readability */
 }
 
 .commute {
