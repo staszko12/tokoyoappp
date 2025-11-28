@@ -5,7 +5,7 @@ import { rooms } from '@/lib/roomStorage';
  */
 export async function POST(request, { params }) {
     try {
-        const { roomId } = params;
+        const { roomId } = await params;
         const body = await request.json();
         const { userName } = body;
 

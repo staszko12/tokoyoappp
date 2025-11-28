@@ -6,7 +6,7 @@ import { generateItinerary } from '@/services/geminiService';
  */
 export async function POST(request, { params }) {
     try {
-        const { roomId } = params;
+        const { roomId } = await params;
         const body = await request.json();
         const { userId, userName, votes } = body;
 
@@ -77,7 +77,7 @@ export async function POST(request, { params }) {
  * GET /api/rooms/:roomId/votes - Get all votes for room
  */
 export async function GET(request, { params }) {
-    const { roomId } = params;
+    const { roomId } = await params;
 
     const room = rooms.get(roomId);
 
