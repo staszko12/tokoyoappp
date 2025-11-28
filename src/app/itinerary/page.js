@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Map from '@/components/Map';
 import styles from './page.module.css';
 
 export default function ItineraryPage() {
     const router = useRouter();
-    const searchParams = useSearchParams();
     const [itinerary, setItinerary] = useState(null);
 
     useEffect(() => {

@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import Map from '@/components/Map';
 import { fetchPlaces } from '@/services/googlePlacesService';
 import { generateItinerary } from '@/services/geminiService';
+import { getOrCreateSessionId, getVotesMap, submitVote } from '@/services/voteService';
 import styles from './page.module.css';
 
 export default function Home() {
@@ -14,6 +15,16 @@ export default function Home() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [generatingItinerary, setGeneratingItinerary] = useState(false);
+    const [sessionId, setSessionId] = useState(null);
+
+    // Initialize session on mount
+    useEffect(() => {
+        async function initSession() {
+            const id = await getOrCreateSessionId();
+            setSessionId(id);
+        }
+        initSession();
+    }, []);
 
     // Fetch places from Google Places API
     useEffect(() => {
@@ -23,7 +34,18 @@ export default function Home() {
 
             try {
                 const fetchedPlaces = await fetchPlaces(activeFilter, 30, activeCity);
-                setPlaces(fetchedPlaces);
+
+                // If we have a session, load votes from API
+                if (sessionId) {
+                    const votesMap = await getVotesMap(sessionId);
+                    const placesWithVotes = fetchedPlaces.map(place => ({
+                        ...place,
+                        votes: votesMap[place.id] || 0
+                    }));
+                    setPlaces(placesWithVotes);
+                } else {
+                    setPlaces(fetchedPlaces);
+                }
             } catch (err) {
                 console.error('Failed to fetch places:', err);
                 setError('Failed to load places. Please try again.');
@@ -32,13 +54,29 @@ export default function Home() {
             }
         }
 
-        loadPlaces();
-    }, [activeFilter, activeCity]);
+        if (sessionId) {
+            loadPlaces();
+        }
+    }, [activeFilter, activeCity, sessionId]);
 
-    const handleVote = (id) => {
-        setPlaces(places.map(place =>
+    const handleVote = async (id) => {
+        if (!sessionId) return;
+
+        // Optimistically update UI
+        const updatedPlaces = places.map(place =>
             place.id === id ? { ...place, votes: place.votes + 1 } : place
-        ));
+        );
+        setPlaces(updatedPlaces);
+
+        // Submit to API
+        try {
+            const place = updatedPlaces.find(p => p.id === id);
+            await submitVote(sessionId, id, place.votes);
+        } catch (error) {
+            console.error('Failed to submit vote:', error);
+            // Revert on error
+            setPlaces(places);
+        }
     };
 
     const handleFinishVoting = async () => {
