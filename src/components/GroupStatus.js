@@ -1,8 +1,11 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import styles from './GroupStatus.module.css';
 
 export default function GroupStatus({ room, currentUser }) {
+    const router = useRouter();
+
     if (!room) {
         return (
             <div className={styles.container}>
@@ -14,6 +17,7 @@ export default function GroupStatus({ room, currentUser }) {
     const readyCount = room.users?.filter(u => u.isReady).length || 0;
     const totalUsers = room.users?.length || 0;
     const allReady = readyCount === 5 && totalUsers === 5;
+    const itineraryReady = room.itinerary !== null;
 
     return (
         <div className={styles.container}>
@@ -24,7 +28,19 @@ export default function GroupStatus({ room, currentUser }) {
                 </div>
 
                 <div className={styles.status}>
-                    {allReady ? (
+                    {itineraryReady ? (
+                        <>
+                            <div className={styles.success}>🎉</div>
+                            <h2>Itinerary Ready!</h2>
+                            <p>Your group trip has been planned by AI!</p>
+                            <button
+                                className={styles.viewBtn}
+                                onClick={() => router.push(`/results/${room.roomId}`)}
+                            >
+                                View Results
+                            </button>
+                        </>
+                    ) : allReady ? (
                         <>
                             <div className={styles.spinner}></div>
                             <h2>Generating Your Group Itinerary...</h2>

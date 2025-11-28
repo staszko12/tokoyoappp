@@ -17,6 +17,7 @@ export default function RoomPage() {
     const [user, setUser] = useState(null); // { userId, userName }
     const [room, setRoom] = useState(null);
     const [places, setPlaces] = useState([]);
+    const [votes, setVotes] = useState({}); // { placeId: voteCount } - persists across filter changes
     const [activeFilter, setActiveFilter] = useState('all');
     const [activeCity, setActiveCity] = useState('all');
     const [loading, setLoading] = useState(true);
@@ -52,16 +53,16 @@ export default function RoomPage() {
         return () => clearInterval(interval);
     }, [user, roomId, router]);
 
-    // Load places
+    // Load places and merge with existing votes
     useEffect(() => {
         async function loadPlaces() {
             setLoading(true);
             try {
                 const fetchedPlaces = await fetchPlaces(activeFilter, 30, activeCity);
-                // Initialize with 0 votes
+                // Merge with existing votes
                 const placesWithVotes = fetchedPlaces.map(place => ({
                     ...place,
-                    votes: 0
+                    votes: votes[place.id] || 0  // Preserve votes across filter changes
                 }));
                 setPlaces(placesWithVotes);
             } catch (err) {
@@ -75,12 +76,14 @@ export default function RoomPage() {
         if (user) {
             loadPlaces();
         }
-    }, [activeFilter, activeCity, user]);
+    }, [activeFilter, activeCity, user, votes]);
 
     const handleVote = (id) => {
-        setPlaces(places.map(place =>
-            place.id === id ? { ...place, votes: place.votes + 1 } : place
-        ));
+        // Update votes object
+        setVotes(prev => ({
+            ...prev,
+            [id]: (prev[id] || 0) + 1
+        }));
     };
 
     const handleSubmitVotes = async () => {
