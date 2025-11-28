@@ -34,9 +34,13 @@ const FILTER_MAPPING = {
  */
 export async function fetchPlaces(filter = 'all', limit = 30, city = 'all') {
     if (!API_KEY) {
-        console.error('Google Maps API Key is missing. Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to .env.local');
+        console.error('❌ Google Maps API Key is missing!');
+        console.error('Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to .env.local');
+        console.error('Current API_KEY value:', API_KEY);
         return [];
     }
+
+    console.log('✅ Google Maps API Key found:', API_KEY.substring(0, 10) + '...');
 
     const types = FILTER_MAPPING[filter] || FILTER_MAPPING['all'];
     let allPlaces = [];

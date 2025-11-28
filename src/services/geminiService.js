@@ -21,8 +21,12 @@ if (API_KEY) {
  */
 export async function generateItinerary(votedPlaces) {
     if (!API_KEY) {
-        throw new Error('Gemini API key is not configured');
+        console.error('❌ Gemini API Key is missing!');
+        console.error('Please add NEXT_PUBLIC_GEMINI_API_KEY to .env.local');
+        throw new Error('Gemini API key is not configured. Please add NEXT_PUBLIC_GEMINI_API_KEY to .env.local');
     }
+
+    console.log('✅ Gemini API Key found:', API_KEY.substring(0, 10) + '...');
 
     if (!votedPlaces || votedPlaces.length === 0) {
         throw new Error('No places provided for itinerary generation');
@@ -42,8 +46,9 @@ export async function generateItinerary(votedPlaces) {
 
         return itinerary;
     } catch (error) {
-        console.error('Error generating itinerary with Gemini:', error);
-        throw new Error('Failed to generate itinerary. Please try again.');
+        console.error('❌ Error generating itinerary with Gemini:', error);
+        console.error('Error details:', error.message);
+        throw new Error(`Failed to generate itinerary: ${error.message}`);
     }
 }
 

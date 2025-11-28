@@ -26,6 +26,33 @@
     font-size: 0.9rem;
 }
 
+.roomInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 10px;
+    font-size: 0.85rem;
+}
+
+.userName {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.roomCode {
+    color: #667eea;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.userCount {
+    color: #64748b;
+    font-weight: 500;
+}
+
 .list {
     flex: 1;
     overflow-y: auto;
@@ -118,54 +145,55 @@
     background: var(--primary);
     border-color: var(--primary);
 }
+
 .footer {
-  padding: 1rem;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
 }
 
 .finishBtn {
-  width: 100%;
-  padding: 1rem;
-  background: var(--secondary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition-fast);
+    width: 100%;
+    padding: 1rem;
+    background: var(--secondary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
 }
 
 .finishBtn:hover {
-  background: #db2777; /* Darker pink */
+    background: #db2777;
+    /* Darker pink */
 }
 
 .finishBtn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  opacity: 0.6;
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 .loading,
 .error,
 .empty {
-  padding: 2rem;
-  text-align: center;
-  color: var(--text-muted);
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-muted);
 }
 
 .error {
-  color: #dc2626;
-  background: #fee2e2;
-  margin: 1rem;
-  border-radius: 8px;
+    color: #dc2626;
+    background: #fee2e2;
+    margin: 1rem;
+    border-radius: 8px;
 }
 
 .loading {
-  color: #0070f3;
+    color: #0070f3;
 }
 
 .empty {
-  color: #666;
+    color: #666;
 }
-

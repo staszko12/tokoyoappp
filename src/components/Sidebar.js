@@ -1,12 +1,19 @@
 import FilterBar from './FilterBar';
 import styles from './Sidebar.module.css';
 
-export default function Sidebar({ places, onVote, activeFilter, onFilterChange, activeCity, onCityChange, onFinish, loading, error }) {
+export default function Sidebar({ places, onVote, activeFilter, onFilterChange, activeCity, onCityChange, onFinish, loading, error, roomInfo, currentUser }) {
     return (
         <aside className={styles.sidebar}>
             <div className={styles.header}>
                 <h2>Places to Visit</h2>
                 <p className={styles.subtitle}>Vote for your favorites</p>
+                {roomInfo && currentUser && (
+                    <div className={styles.roomInfo}>
+                        <span className={styles.userName}>👤 {currentUser.userName}</span>
+                        <span className={styles.roomCode}>Room: {roomInfo.roomId}</span>
+                        <span className={styles.userCount}>{roomInfo.totalUsers}/5 users</span>
+                    </div>
+                )}
             </div>
 
             <FilterBar
@@ -86,9 +93,9 @@ export default function Sidebar({ places, onVote, activeFilter, onFilterChange, 
                 <button
                     className={styles.finishBtn}
                     onClick={onFinish}
-                    disabled={loading || places.length === 0}
+                    disabled={loading}
                 >
-                    Finish Voting &amp; View Itinerary
+                    {loading ? 'Submitting...' : 'Submit My Votes'}
                 </button>
             </div>
         </aside>
