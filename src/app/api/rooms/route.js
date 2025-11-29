@@ -57,18 +57,11 @@ export async function GET(request) {
             return Response.json({ error: 'Room not found' }, { status: 404 });
         }
 
-        // Calculate votesSubmitted and totalUsers based on the fetched room data
-        const votesSubmitted = room.users.filter(user => user.vote !== null).length;
-        const totalUsers = room.users.length;
-        const isReady = totalUsers > 0 && votesSubmitted === totalUsers; // Assuming 'ready' means all users have voted
 
         return Response.json({
             success: true,
             roomId: room.id,
             users: room.users,
-            votesSubmitted: votesSubmitted,
-            totalUsers: totalUsers,
-            isReady: isReady,
             status: room.status,
             itinerary: room.itinerary ? JSON.parse(room.itinerary) : null
         });
