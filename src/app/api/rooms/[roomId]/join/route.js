@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
  */
 export async function POST(request, { params }) {
     try {
-        const { roomId } = params; // Corrected destructuring
+        const { roomId } = await params;
         const body = await request.json();
         const { userName } = body;
 
