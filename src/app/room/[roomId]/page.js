@@ -142,7 +142,7 @@ export default function RoomPage() {
     }
 
     // Show waiting screen if user has submitted
-    const currentUser = room?.users?.find(u => u.userId === user.userId);
+    const currentUser = room?.users?.find(u => u.id === user.userId);
     if (currentUser?.isReady) {
         return (
             <main className={styles.main}>
