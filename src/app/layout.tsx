@@ -1,8 +1,8 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'Japan Trip Planner',
-  description: 'Plan your dream trip to Japan',
+  title: 'Neon Tokyo | Trip Planner',
+  description: 'Plan your dream trip to Japan with friends',
 }
 
 export default function RootLayout({
@@ -11,8 +11,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body suppressHydrationWarning>{children}</body>
+    <html lang="en" className="font-sans">
+      <body suppressHydrationWarning className="bg-void text-white">{children}</body>
     </html>
   )
 }
+

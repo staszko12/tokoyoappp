@@ -49,7 +49,8 @@ export async function GET(request) {
         const room = await prisma.room.findUnique({
             where: { id: roomId },
             include: {
-                users: true
+                users: true,
+                votes: true
             }
         });
 
@@ -63,6 +64,7 @@ export async function GET(request) {
             roomId: room.id,
             users: room.users,
             status: room.status,
+            votes: room.votes,
             itinerary: room.itinerary ? JSON.parse(room.itinerary) : null
         });
     } catch (error) {

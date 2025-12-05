@@ -31,8 +31,13 @@ const FILTER_MAPPING = {
 
 /**
  * Fetch places from Google Places API
+ * @param {string} [filter='all']
+ * @param {number} [limit=30]
+ * @param {string} [city='all']
+ * @param {{lat: number, lng: number}|null} [center=null]
+ * @param {number} [radius=5000]
  */
-export async function fetchPlaces(filter = 'all', limit = 30, city = 'all') {
+export async function fetchPlaces(filter = 'all', limit = 30, city = 'all', center = null, radius = 5000) {
     if (!API_KEY) {
         console.error('❌ Google Maps API Key is missing!');
         console.error('Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to .env.local');
@@ -45,28 +50,45 @@ export async function fetchPlaces(filter = 'all', limit = 30, city = 'all') {
     const types = FILTER_MAPPING[filter] || FILTER_MAPPING['all'];
     let allPlaces = [];
 
-    // Filter regions based on city selection
-    const regionsToSearch = city === 'all'
-        ? REGIONS
-        : REGIONS.filter(region => region.name.toLowerCase() === city.toLowerCase());
-
-    // Distribute limit across regions
-    const limitPerRegion = Math.ceil(limit / regionsToSearch.length);
-
-    for (const region of regionsToSearch) {
+    // If center is provided, search around that location
+    if (center && center.lat && center.lng) {
         try {
-            const places = await fetchPlacesForRegion(region, types, limitPerRegion);
-            allPlaces = [...allPlaces, ...places];
+            const region = { name: 'Current View', lat: center.lat, lng: center.lng };
+            // For dynamic search, we might want to fetch slightly fewer per call to be faster, 
+            // but limit is passed in.
+            const places = await fetchPlacesForRegion(region, types, limit, radius);
+            allPlaces = places;
         } catch (error) {
-            console.error(`Error fetching places for ${region.name}:`, error);
+            console.error('Error fetching places for current view:', error);
+        }
+    } else {
+        // Fallback to existing city/region logic
+        const regionsToSearch = city === 'all'
+            ? REGIONS
+            : REGIONS.filter(region => region.name.toLowerCase() === city.toLowerCase());
+
+        // Distribute limit across regions
+        const limitPerRegion = Math.ceil(limit / regionsToSearch.length);
+
+        for (const region of regionsToSearch) {
+            try {
+                const places = await fetchPlacesForRegion(region, types, limitPerRegion);
+                allPlaces = [...allPlaces, ...places];
+            } catch (error) {
+                console.error(`Error fetching places for ${region.name}:`, error);
+            }
         }
     }
 
-    // Shuffle and slice to exact limit
-    return allPlaces.sort(() => 0.5 - Math.random()).slice(0, limit);
+    // Shuffle and slice to exact limit (only if we have more than needed)
+    if (allPlaces.length > limit) {
+        return allPlaces.sort(() => 0.5 - Math.random()).slice(0, limit);
+    }
+
+    return allPlaces;
 }
 
-async function fetchPlacesForRegion(region, types, limit) {
+async function fetchPlacesForRegion(region, types, limit, radius = 10000.0) {
     try {
         // Google Places API has a max of 20 results per request
         const requestLimit = Math.min(limit, 20);
@@ -80,7 +102,7 @@ async function fetchPlacesForRegion(region, types, limit) {
                         latitude: region.lat,
                         longitude: region.lng
                     },
-                    radius: 10000.0 // 10km radius
+                    radius: radius // Use provided radius
                 }
             }
         };
