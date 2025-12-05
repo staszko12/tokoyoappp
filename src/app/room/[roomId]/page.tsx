@@ -8,6 +8,7 @@ import Map from '@/components/Map';
 import JoinRoom from '@/components/JoinRoom';
 import GroupStatus from '@/components/GroupStatus';
 import { fetchPlaces } from '@/services/googlePlacesService';
+import { submitVotes } from '@/services/voteService';
 
 export default function RoomPage() {
     const params = useParams();
@@ -164,17 +165,7 @@ export default function RoomPage() {
                 votes: place.votes
             }));
 
-            const response = await fetch(`/api/rooms/${roomId}/votes`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: user!.userId,
-                    userName: user!.userName,
-                    votes
-                })
-            });
-
-            const data = await response.json();
+            const data = await submitVotes(roomId, user!.userId, user!.userName, votes);
 
             if (data.success) {
                 // User is now marked as ready
