@@ -68,7 +68,7 @@ export async function POST(request, { params }) {
         const users = await prisma.user.findMany({
             where: { roomId }
         });
-        const allReady = users.length === 5 && users.every(u => u.isReady);
+        const allReady = users.length > 0 && users.every(u => u.isReady);
 
         let itinerary = null;
         if (room.itinerary) {

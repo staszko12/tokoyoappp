@@ -5,8 +5,8 @@ import { Users, Sparkles, Loader2, CheckCircle2, ArrowRight } from 'lucide-react
 import { Button } from './Button';
 
 interface User {
-    userId: string;
-    userName: string;
+    id: string;
+    name: string;
     isReady: boolean;
 }
 
@@ -42,7 +42,7 @@ export default function GroupStatus({ room, currentUser }: GroupStatusProps) {
 
     const readyCount = room.users?.filter(u => u.isReady).length || 0;
     const totalUsers = room.users?.length || 0;
-    const allReady = readyCount === 5 && totalUsers === 5;
+    const allReady = totalUsers > 0 && readyCount === totalUsers;
     const itineraryReady = room.itinerary !== null;
 
     return (
@@ -108,7 +108,7 @@ export default function GroupStatus({ room, currentUser }: GroupStatusProps) {
                 {/* Bento Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {room.users?.map((user, index) => (
-                        <div key={user.userId} className="relative group">
+                        <div key={user.id} className="relative group">
                             <div className={`
                                 h-48 flex flex-col items-center justify-center gap-4 
                                 bg-surface/60 backdrop-blur-glass rounded-3xl p-4 
@@ -119,12 +119,12 @@ export default function GroupStatus({ room, currentUser }: GroupStatusProps) {
                                 }
                             `}>
                                 <div className={`w-20 h-20 rounded-full ${AVATAR_COLORS[index % AVATAR_COLORS.length]} flex items-center justify-center text-2xl font-bold text-white shadow-deep`}>
-                                    {user.userName.charAt(0).toUpperCase()}
+                                    {user.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="text-center">
                                     <p className="text-white font-semibold">
-                                        {user.userName}
-                                        {user.userId === currentUser.userId && ' (you)'}
+                                        {user.name}
+                                        {user.id === currentUser.userId && ' (you)'}
                                     </p>
                                     <span className={`text-xs px-3 py-1 rounded-full mt-2 inline-block font-medium ${user.isReady
                                         ? 'bg-acid/20 text-acid border border-acid/30'

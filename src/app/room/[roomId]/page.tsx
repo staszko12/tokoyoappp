@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Menu, Navigation } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
-import Map from '@/components/Map';
+import MapComponent from '@/components/Map';
 import JoinRoom from '@/components/JoinRoom';
 import GroupStatus from '@/components/GroupStatus';
 import { fetchPlaces } from '@/services/googlePlacesService';
+import { submitVotes } from '@/services/voteService';
 
 export default function RoomPage() {
     const params = useParams();
@@ -66,17 +67,24 @@ export default function RoomPage() {
         setLoading(true);
         try {
             const fetchedPlaces = await fetchPlaces(activeFilter, 30, activeCity, center, radius);
-            // Merge with existing votes
-            const placesWithVotes = fetchedPlaces.map((place: any) => ({
-                ...place,
-                votes: votes[place.id] || 0
-            }));
 
-            if (center) {
-                setPlaces(placesWithVotes);
-            } else {
-                setPlaces(placesWithVotes);
-            }
+            setPlaces(currentPlaces => {
+                // Create a map of existing places by ID for quick lookup
+                const existingPlacesMap = new Map(currentPlaces.map(p => [p.id, p]));
+
+                // Merge new places, preserving existing votes if any
+                fetchedPlaces.forEach((newPlace: any) => {
+                    if (!existingPlacesMap.has(newPlace.id)) {
+                        // New place found
+                        existingPlacesMap.set(newPlace.id, {
+                            ...newPlace,
+                            votes: votes[newPlace.id] || 0
+                        });
+                    }
+                });
+
+                return Array.from(existingPlacesMap.values());
+            });
 
         } catch (err) {
             console.error('Failed to fetch places:', err);
@@ -102,10 +110,13 @@ export default function RoomPage() {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const radius = R * c;
 
+        // Ensure we search a reasonable area
         const effectiveRadius = Math.max(radius, 2000);
 
-        if (!lastFetchCenter || calculateDistance(center, lastFetchCenter) > 2000) {
+        // Initial load or significant movement
+        if (!lastFetchCenter || calculateDistance(center, lastFetchCenter) > (effectiveRadius * 0.5)) {
             setLastFetchCenter(center);
+            // Only fetch if we are actually exploring (not just small jitters)
             loadPlaces(center, effectiveRadius);
         }
     };
@@ -155,7 +166,7 @@ export default function RoomPage() {
 
         setSubmitting(true);
         try {
-            const votes = votedPlaces.map(place => ({
+            const votesData = votedPlaces.map(place => ({
                 placeId: place.id,
                 placeName: place.name,
                 placeLocation: place.location,
@@ -164,20 +175,20 @@ export default function RoomPage() {
                 votes: place.votes
             }));
 
-            const response = await fetch(`/api/rooms/${roomId}/votes`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: user!.userId,
-                    userName: user!.userName,
-                    votes
-                })
-            });
-
-            const data = await response.json();
+            const data = await submitVotes(roomId, user!.userId, user!.userName, votesData);
 
             if (data.success) {
-                // User is now marked as ready
+                // Force an immediate update of the local state to "Ready"
+                // This ensures the UI switches to GroupStatus immediately
+                setRoom((prev: any) => {
+                    if (!prev) return prev;
+                    return {
+                        ...prev,
+                        users: prev.users.map((u: any) =>
+                            u.id === user!.userId ? { ...u, isReady: true } : u
+                        )
+                    };
+                });
             } else {
                 alert('Failed to submit votes. Please try again.');
             }
@@ -193,7 +204,7 @@ export default function RoomPage() {
         return <JoinRoom roomId={roomId} onJoin={setUser} />;
     }
 
-    const currentUser = room?.users?.find((u: any) => u.userId === user.userId);
+    const currentUser = room?.users?.find((u: any) => u.id === user.userId);
     if (currentUser?.isReady) {
         return <GroupStatus room={room} currentUser={user} />;
     }
@@ -246,7 +257,7 @@ export default function RoomPage() {
 
             {/* Map Area */}
             <div className="flex-1 bg-slate-950 relative">
-                <Map
+                <MapComponent
                     places={places}
                     loading={loading}
                     viewMode="voting"
