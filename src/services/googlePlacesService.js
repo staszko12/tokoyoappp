@@ -18,11 +18,22 @@ const REGIONS = [
  * Map app filters to Google Places types
  */
 const FILTER_MAPPING = {
-    'vibe': ['tourist_attraction', 'amusement_park', 'night_club'],
-    'architecture': ['church', 'mosque', 'synagogue', 'hindu_temple'], // Note: 'castle' is not a standard type in v1, using closest approximations or relying on text search if needed. Actually 'historical_landmark' is better.
-    'old-sightseeing': ['place_of_worship', 'historical_landmark'],
-    'nature': ['park', 'natural_feature'],
+    // Vibe: Nightlife and Entertainment
+    'vibe': ['tourist_attraction', 'amusement_park', 'bar', 'spa'],
+
+    // Architecture: Religious and Historical
+    'architecture': ['church', 'mosque', 'synagogue', 'hindu_temple'],
+
+    // Old Sightseeing: Historical
+    'old-sightseeing': ['historical_landmark', 'museum'],
+
+    // Nature: Parks and Outdoors
+    'nature': ['park', 'national_park', 'campground'],
+
+    // Modern: Shopping and Culture
     'modern': ['shopping_mall', 'museum', 'art_gallery'],
+
+    // All: detailed mix
     'all': ['tourist_attraction', 'historical_landmark', 'park', 'museum']
 };
 
@@ -102,7 +113,7 @@ async function fetchPlacesForRegion(region, types, limit, radius = 10000.0) {
                         latitude: region.lat,
                         longitude: region.lng
                     },
-                    radius: radius // Use provided radius
+                    radius: Math.min(radius, 50000.0) // Cap at 50km per API limit
                 }
             }
         };
@@ -121,12 +132,8 @@ async function fetchPlacesForRegion(region, types, limit, radius = 10000.0) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Google Places API Error:', {
-                status: response.status,
-                statusText: response.statusText,
-                body: errorText
-            });
-            throw new Error(`Places API error: ${response.status}`);
+            console.error(`Google Places API Error (${response.status}):`, errorText);
+            throw new Error(`Places API error: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
